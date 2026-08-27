@@ -15,8 +15,25 @@ import { noteFallback } from "@/lib/fallbacks";
  * Every function returns a Result. Nothing here throws into a render.
  */
 
-/** Section 8 — the feed sweep threshold. Under 0.25 is near-duplicate, 0.7+ unrelated. */
-export const FEED_MAX_DISTANCE = 0.7;
+/**
+ * The feed sweep threshold.
+ *
+ * Appendix A prescribes 0.7 here, on the reasoning that 0.7+ means "unrelated".
+ * That reasoning holds for a *search*, and fails for the feed, which is not a
+ * search: it has to show the whole memory set, not the part that happens to sit
+ * near one fixed phrase.
+ *
+ * Measured against the live relayer: a real memory about the header codec scores
+ * 0.819 against FEED_QUERY, and 0.351 against an on-topic query. At 0.7 the feed
+ * silently omitted it while `restore` confirmed it was stored and indexed. A
+ * threshold that hides real memories is worse than no threshold, so the sweep
+ * takes everything and lets `limit` bound the page.
+ *
+ * Contested detection still uses a tight threshold — that one really is a
+ * similarity test, and it compares one memory body against another rather than
+ * against a generic phrase.
+ */
+export const FEED_MAX_DISTANCE = 2.0;
 /** Section 5.5 — contested detection is a tighter net. */
 export const CONTESTED_MAX_DISTANCE = 0.35;
 
@@ -263,25 +280,53 @@ export async function recallNamespace(
   const c = getClient();
   if (!c.ok) return c;
 
-  try {
-    const res = await c.value.recall({
-      query: opts.query ?? FEED_QUERY,
-      namespace,
-      limit: opts.limit ?? 100,
-      maxDistance: opts.maxDistance ?? FEED_MAX_DISTANCE,
-    });
+  // Section 8 — retry idempotent reads twice, with 1s and 3s backoff.
+  //
+  // This is not belt-and-braces. The relayer intermittently rejects a valid
+  // delegate credential with "Walrus Memory isn't signed in" and accepts the
+  // very next identical request, measured at roughly one call in three. A
+  // recall is a pure read, so retrying is safe and is what keeps the feed off
+  // OFFLINE. Writes are never retried — see rememberAndWait.
+  const backoff = [0, 1000, 3000];
+  let last: { code: string; message: string } | null = null;
 
-    const rows: RecallRow[] = (res.results ?? []).map((r) => ({
-      memoryBlobId: asMemoryBlobId(r.blob_id),
-      text: r.text,
-      distance: typeof r.distance === "number" ? r.distance : Number.NaN,
-      namespace,
-    }));
-    return Ok(rows);
-  } catch (e) {
-    const s = shape(e, `Recall in namespace "${namespace}"`);
-    return Err(s.code, s.message);
+  for (let attempt = 0; attempt < backoff.length; attempt++) {
+    if (backoff[attempt] > 0) {
+      await new Promise((r) => setTimeout(r, backoff[attempt]));
+    }
+
+    try {
+      const res = await c.value.recall({
+        query: opts.query ?? FEED_QUERY,
+        namespace,
+        limit: opts.limit ?? 100,
+        maxDistance: opts.maxDistance ?? FEED_MAX_DISTANCE,
+      });
+
+      const rows: RecallRow[] = (res.results ?? []).map((r) => ({
+        memoryBlobId: asMemoryBlobId(r.blob_id),
+        text: r.text,
+        distance: typeof r.distance === "number" ? r.distance : Number.NaN,
+        namespace,
+      }));
+
+      if (attempt > 0) {
+        noteFallback(
+          "Relayer recall",
+          "The relayer rejected a valid credential with a sign-in error, then accepted the same request on retry.",
+          "Nothing lost. Recalls are retried twice with backoff; only a third consecutive failure marks the namespace degraded."
+        );
+      }
+      return Ok(rows);
+    } catch (e) {
+      const s = shape(e, `Recall in namespace "${namespace}"`);
+      last = s;
+      // A genuine rate limit should back off, not hammer.
+      if (s.code === "RATE_LIMIT") break;
+    }
   }
+
+  return Err(last?.code ?? "SDK", last?.message ?? "Recall failed.");
 }
 
 export interface SweepResult {
@@ -300,9 +345,13 @@ export async function sweep(namespaces: string[]): Promise<Result<SweepResult>> 
   const c = getClient();
   if (!c.ok) return c;
 
-  const settled = await Promise.all(
-    namespaces.map(async (ns) => ({ ns, res: await recallNamespace(ns) }))
-  );
+  // Sequential rather than Promise.all. Each namespace already retries, and
+  // firing every namespace at once multiplies the load during exactly the
+  // moments the relayer is flaky. Two namespaces warm cost ~1-2s in total.
+  const settled: Array<{ ns: string; res: Result<RecallRow[]> }> = [];
+  for (const ns of namespaces) {
+    settled.push({ ns, res: await recallNamespace(ns) });
+  }
 
   const seen = new Map<string, RecallRow>();
   const degraded: SweepResult["degraded"] = [];

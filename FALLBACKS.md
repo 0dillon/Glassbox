@@ -167,6 +167,81 @@ both instruct `pnpm run doctor`, with a note explaining why.
 
 ---
 
+## 8. The feed sweep threshold was raised from 0.7 to 2.0
+
+**What failed.** Appendix A prescribes sweeping with a fixed broad query at
+`maxDistance: 0.7`, on the reasoning that 0.7 or above means "unrelated". With a
+real memory on a real account, the feed showed nothing while `restore` confirmed
+the memory was stored and indexed.
+
+**Measured against the live relayer**, for a memory about the header codec:
+
+| Query | Distance |
+|---|---|
+| `decision constraint convention promise correction` (the sweep query) | **0.819** |
+| `structured fields inside memory text storage layer namespace` | 0.351 |
+
+At 0.7 the memory was silently filtered out of its own feed.
+
+**Path taken.** `FEED_MAX_DISTANCE = 2.0`, which is no filter at all on a cosine
+distance. The reasoning behind 0.7 holds for a *search* and fails for the feed,
+which is not a search: it has to show the whole memory set, not the part that
+happens to sit near one fixed phrase. `limit` bounds the page instead.
+
+Contested detection still uses the tight 0.35 threshold. That one really is a
+similarity test, and it compares one memory body against another rather than
+against a generic phrase.
+
+**What this costs.** Nothing. A threshold that hides real memories is worse than
+no threshold.
+
+---
+
+## 9. Recalls are retried; the relayer intermittently rejects a valid credential
+
+**What failed.** With a correctly registered delegate key, roughly one recall in
+three returns `Walrus Memory isn't signed in. Call the memwal_login tool, then
+retry.` — and the very next identical request succeeds. Observed on both
+namespaces, both sequentially and concurrently, so it is neither
+namespace-specific nor a concurrency fault on our side.
+
+**Path taken.** Section 8 already sanctions retrying idempotent reads twice with
+1s and 3s backoff; that is now applied to `recall`. Only a third consecutive
+failure marks a namespace degraded. Writes are still never retried, because a
+timeout there does not mean the write failed.
+
+The per-namespace sweep also became sequential rather than `Promise.all`. Each
+namespace already retries, and firing them all at once multiplies load at
+exactly the moments the relayer is flaky. Two namespaces warm cost 1–2s total.
+
+**What this costs.** A failing namespace now takes up to ~4s longer to be
+reported as degraded.
+
+---
+
+## 10. Poll passes could overlap, and the owner address was never resolved for the feed
+
+Two defects found once the app ran against a real account.
+
+**Overlapping polls.** A sweep takes 7–21s against the live relayer while the
+client polls every 6s, so passes stacked up and each one added load. Fixed with
+an in-flight guard on the client, plus a 4-second budget on contested detection
+— leftover candidates are picked up on a later tick, since nothing there is
+time-critical.
+
+**Owner address.** `pollMemories` called `listMemories`, which needs the account
+**owner** address, but nothing on the feed path ever resolved it — only `/team`
+and `/doctor` did. The feed was therefore pinned to TEXT-ONLY mode however
+healthy the signed API was. `pollMemories` now resolves the owner once per
+process, and the app reaches FULL mode.
+
+**Also fixed:** the RECORD button used `useTransition`, whose pending flag never
+cleared after the server action returned, leaving the button stuck on
+`RECORDING…` even though the write had succeeded and the tile had rendered.
+Replaced with explicit state and a `finally`.
+
+---
+
 ## Runtime fallbacks — where to look
 
 These are decided while the app is running, not at build time, and are shown

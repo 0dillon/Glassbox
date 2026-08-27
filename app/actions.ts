@@ -146,6 +146,14 @@ export async function pollMemories(): Promise<FeedPayload> {
   let mode: AppMode = "FULL";
   let modeReason: string | null = null;
 
+  // The metadata API is addressed by the account OWNER address, which is not the
+  // delegate address and is not in the environment by default. Resolve it once
+  // per process here, or the feed can never leave TEXT-ONLY mode however
+  // healthy the signed API is.
+  if (!getResolvedOwner()) {
+    await resolveOwner();
+  }
+
   const meta = await listMemories();
   if (meta.ok) {
     const byBlob = new Map(meta.value.map((m) => [m.memoryBlobId as string, m]));
@@ -204,6 +212,14 @@ export async function currentSweepInterval(): Promise<number> {
  * Section 5.5 — contested detection, for concurrent and cross-machine
  * contradictions.
  */
+/**
+ * Contested detection is the expensive half of a pass: one extra recall per
+ * candidate, each a second or more against the live relayer. This budget keeps
+ * a pass from outrunning the poll interval; leftover candidates are simply
+ * picked up on a later tick, since nothing here is time-critical.
+ */
+const CONTESTED_BUDGET_MS = 4000;
+
 async function detectContested(
   records: MemoryRecord[],
   rateLimited: boolean
@@ -215,8 +231,10 @@ async function detectContested(
 
   const byId = new Map(records.map((r) => [r.memoryBlobId as string, r]));
   const pairs: ContestedPair[] = [];
+  const deadline = Date.now() + CONTESTED_BUDGET_MS;
 
   for (const subject of candidates) {
+    if (Date.now() > deadline) break;
     const near = await recallNear(subject.body, subject.namespace, 5);
     if (!near.ok) {
       // A failed check is not a finding. Leave it uncached so it retries later.

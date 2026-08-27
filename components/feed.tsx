@@ -54,13 +54,27 @@ export function Feed({
   const [now, setNow] = useState(() => Date.now());
 
   const seenIds = useRef<Set<string> | null>(null);
+  /** True while a sweep is in flight, so ticks cannot overlap. */
+  const inFlight = useRef(false);
   // Freshness is state rather than a ref, so the render pass reads it purely
   // and a tile stops being "fresh" on the next clock update rather than
   // whenever React happens to re-render.
   const [freshIds, setFreshIds] = useState<Record<string, number>>({});
 
   const tick = useCallback(async () => {
-    const next = await pollMemories();
+    // A sweep against the live relayer takes seconds, sometimes longer than the
+    // poll interval. Without this guard the passes stack up, each one adding
+    // load at exactly the moment the service is already slow.
+    if (inFlight.current) return;
+    inFlight.current = true;
+
+    let next: FeedPayload;
+    try {
+      next = await pollMemories();
+    } finally {
+      inFlight.current = false;
+    }
+
     const at = Date.now();
 
     setPayload(next);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 import { recordMemory } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -42,12 +42,15 @@ export function CaptureBox({
   const [namespace, setNamespace] = useState(namespaces[0] ?? "default");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  // Plain state rather than useTransition: the write is a server action that
+  // can take tens of seconds, and the pending flag has to clear exactly when it
+  // returns. A `finally` guarantees that even when the action throws.
+  const [pending, setPending] = useState(false);
 
   const trimmed = body.trim();
   const remaining = MAX_BODY - trimmed.length;
 
-  function submit() {
+  async function submit() {
     setError(null);
     setNotice(null);
 
@@ -65,7 +68,8 @@ export function CaptureBox({
       return;
     }
 
-    startTransition(async () => {
+    setPending(true);
+    try {
       const res = await recordMemory(trimmed, scope, namespace);
       if (!res.ok) {
         // A timeout is a notice, not an error: the relayer keeps processing
@@ -80,7 +84,13 @@ export function CaptureBox({
       }
       onRecorded(res.value.memoryBlobId, res.value.stored, namespace);
       setBody("");
-    });
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "The memory could not be recorded."
+      );
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -165,7 +175,7 @@ export function CaptureBox({
             type="button"
             size="lg"
             className="shadow-hard"
-            onClick={submit}
+            onClick={() => void submit()}
             disabled={!canWrite || pending || trimmed.length === 0}
           >
             {pending ? "RECORDING…" : "RECORD"}
