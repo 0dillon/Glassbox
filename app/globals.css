@@ -1,0 +1,416 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* ==========================================================================
+   GLASSBOX design tokens (Section 9)
+   Minimalist neo-brutalist. Monochrome. Light theme only.
+   Everything shadcn generated has been replaced. Radius is 0 everywhere.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* --- Palette (Section 9, exact values) --- */
+  --paper:    #FFFFFF;
+  --off:      #F5F4F2;
+  --grey-100: #E7E6E3;
+  --grey-300: #C4C3C0;
+  --grey-500: #8A8986;
+  --grey-700: #4A4947;
+  --ink:      #0A0A0A;
+  --signal:   #D6300F;
+
+  /* --- Type stacks --- */
+  --stack-ui:   var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --stack-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-ui:   var(--stack-ui);
+  --font-mono: var(--stack-mono);
+
+  /* --- Type scale (fixed, not fluid) --- */
+  --t-xs:   11px;
+  --t-sm:   13px;
+  --t-base: 15px;
+  --t-lg:   19px;
+  --t-xl:   26px;
+  --t-2xl:  38px;
+  --t-3xl:  56px;
+
+  --lh-xs:   16px;
+  --lh-sm:   20px;
+  --lh-base: 23px;
+  --lh-lg:   26px;
+  --lh-xl:   30px;
+  --lh-2xl:  40px;
+  --lh-3xl:  54px;
+
+  /* --- Spacing scale, 4px base --- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  /* --- Borders / radius / shadow --- */
+  --b-hair:  1px;
+  --b-rule:  2px;
+  --b-heavy: 3px;
+  --b-slab:  6px;
+  --radius:    0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --shadow-hard: 4px 4px 0 0 #0A0A0A;
+
+  /* --- shadcn semantic tokens mapped onto Section 9 --- */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--off);
+  --secondary-foreground: var(--ink);
+  --muted: var(--off);
+  --muted-foreground: var(--grey-500);
+  --accent: var(--off);
+  --accent-foreground: var(--ink);
+  --destructive: var(--signal);
+  --destructive-foreground: var(--paper);
+  --border: var(--ink);
+  --input: var(--ink);
+  --ring: var(--ink);
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--off);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--ink);
+  --sidebar-ring: var(--ink);
+  --chart-1: var(--ink);
+  --chart-2: var(--grey-700);
+  --chart-3: var(--grey-500);
+  --chart-4: var(--grey-300);
+  --chart-5: var(--grey-100);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-off: var(--off);
+  --color-grey-100: var(--grey-100);
+  --color-grey-300: var(--grey-300);
+  --color-grey-500: var(--grey-500);
+  --color-grey-700: var(--grey-700);
+  --color-ink: var(--ink);
+  --color-signal: var(--signal);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--stack-ui);
+  --font-heading: var(--stack-ui);
+  --font-mono: var(--stack-mono);
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+}
+
+/* ==========================================================================
+   HARD RESETS. Section 9 absolutes win over anything shadcn ships.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+  text-shadow: none;
+}
+
+@layer base {
+  * {
+    border-color: var(--grey-100);
+    outline-color: var(--ink);
+  }
+
+  html {
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: var(--t-base);
+    line-height: var(--lh-base);
+    font-weight: 400;
+  }
+
+  ::selection {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  :focus-visible {
+    outline: var(--b-heavy) solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  a {
+    color: inherit;
+    text-underline-offset: 3px;
+  }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+  }
+}
+
+/* ==========================================================================
+   SHARED PRIMITIVES
+   ========================================================================== */
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mono uppercase label, Section 9 */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  line-height: var(--lh-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--grey-500);
+  font-weight: 400;
+}
+
+.label-ink {
+  color: var(--ink);
+}
+
+.pagehead {
+  border-top: var(--b-slab) solid var(--ink);
+  padding-top: var(--s-4);
+  margin-bottom: var(--s-7);
+}
+
+.pagehead h1 {
+  font-size: var(--t-xl);
+  line-height: var(--lh-xl);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  margin-top: var(--s-2);
+}
+
+.pagehead p {
+  font-size: var(--t-sm);
+  line-height: var(--lh-sm);
+  color: var(--grey-700);
+  margin-top: var(--s-3);
+  max-width: 68ch;
+}
+
+.subhead {
+  font-size: var(--t-lg);
+  line-height: var(--lh-lg);
+  font-weight: 700;
+}
+
+.panel {
+  border: var(--b-rule) solid var(--ink);
+  background: var(--paper);
+}
+
+.panel-recessed {
+  border: var(--b-rule) solid var(--ink);
+  background: var(--off);
+}
+
+.shadow-hard {
+  box-shadow: var(--shadow-hard);
+}
+
+.shadow-hard:active {
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+
+.numeral {
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.gb-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: var(--b-rule) solid var(--ink);
+}
+
+.gb-table th {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  line-height: var(--lh-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--grey-500);
+  background: var(--off);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: var(--b-rule) solid var(--ink);
+  white-space: nowrap;
+}
+
+.gb-table td {
+  padding: var(--s-3);
+  border-bottom: var(--b-hair) solid var(--grey-100);
+  font-size: var(--t-sm);
+  line-height: var(--lh-sm);
+  vertical-align: top;
+}
+
+.gb-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.gb-table .num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* A superseded memory: 60% opacity is set on the tile, the strikethrough here.
+   One of the five permitted uses of --signal. */
+.gb-struck {
+  position: relative;
+  color: var(--grey-700);
+}
+
+.gb-struck::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--b-rule);
+  background: var(--signal);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   ARRIVAL ANIMATION (Section 10). Hand-written, no registry dependency.
+   ========================================================================== */
+
+@keyframes gb-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gb-signal-fade {
+  from {
+    border-left-color: var(--signal);
+  }
+  to {
+    border-left-color: var(--ink);
+  }
+}
+
+.gb-arrive {
+  animation: gb-arrive 180ms ease-out both;
+}
+
+.gb-fresh {
+  animation:
+    gb-arrive 180ms ease-out both,
+    gb-signal-fade 2000ms linear 180ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-arrive,
+  .gb-fresh {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Range input used by the timeline slider */
+.gb-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--b-rule);
+  background: var(--ink);
+  outline-offset: 6px;
+}
+
+.gb-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 28px;
+  background: var(--ink);
+  border: var(--b-rule) solid var(--ink);
+  cursor: ew-resize;
+}
+
+.gb-range::-moz-range-thumb {
+  width: 16px;
+  height: 28px;
+  background: var(--ink);
+  border: var(--b-rule) solid var(--ink);
+  cursor: ew-resize;
+}
